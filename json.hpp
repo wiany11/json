@@ -485,7 +485,7 @@ std::ostream& operator<<(std::ostream& os, const json::base& j) {
     } else if (const json::integer* v = dynamic_cast<const json::integer*>(&j)) {
         os << v->v;
     } else if (const json::number* v = dynamic_cast<const json::number*>(&j)) {
-        os << v->v;
+        os << std::showpoint << v->v;
     } else if (const json::string* v = dynamic_cast<const json::string*>(&j)) {
         os << '\"' << json::escape(v->v) << '\"';
     } else if (const json::array* v = dynamic_cast<const json::array*>(&j)) {
