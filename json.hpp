@@ -32,10 +32,6 @@ class json {
 
     private: struct base {
         virtual ~base() = default;
-
-        virtual void push_back(const json::value& v) {}
-
-        virtual void insert(const std::pair<std::string, json::value>& v) {}
     };
 
     public: struct null : json::base {
@@ -67,12 +63,7 @@ class json {
     };
 
     public: struct string : json::base {
-        //const char* v;
         std::string v;
-
-        string(const char* v) {
-            this->v = v;
-        }
 
         string(const std::string& v) {
             this->v = v;
@@ -177,11 +168,11 @@ class json {
         }
 
         void push_back(const json::value& v) {
-            this->v->push_back(v);
+            static_cast<json::array*>(this->v)->push_back(v);
         }
 
         void insert(const std::pair<std::string, json::value>& v) {
-            this->v->insert(v);
+            static_cast<json::object*>(this->v)->insert(v);
         }
     };
 
@@ -204,6 +195,10 @@ class json {
 
         std::size_t size() const {
             return this->v.size();
+        }
+
+        json::value& back() {
+            return this->v.back();
         }
     };
 
@@ -271,8 +266,6 @@ class json {
             if (this->ps.top() == json::parsing::READING_OBJECT_VALUE) { // READING_OBEJCT_VALUE
                 this->ps.pop();
                 this->ps.pop();  // READING_OBJECT_KEY
-            } else {  // READING_ARRAY_VALUE
-                this->js.top()->push_back(this->value);
             }
         }
     };
@@ -284,11 +277,9 @@ class json {
             if (p.c == ' ') {
             } else if (p.c == '{') {
                 p.ps.push(json::parsing::READING_OBJECT_KEY);
-                //p.js.push(new json::object());
                 break;
             } else if (p.c == '[') {
                 p.ps.push(json::parsing::READING_ARRAY_VALUE);
-                //p.js.push(new json::array());
                 break;
             }
         }
@@ -298,8 +289,8 @@ class json {
             if      (p.c == ' ' ) {}
             else if (p.c == '{' ) json::parse__left_brace(p);
             else if (p.c == '}' ) json::parse__right_brace(p);
-            else if (p.c == '[' ) {}
-            else if (p.c == ']' ) {}
+            else if (p.c == '[' ) json::parse__left_bracket(p);
+            else if (p.c == ']' ) json::parse__right_bracket(p);
             else if (p.c == ':' ) json::parse__colon(p); 
             else if (p.c == ',' ) json::parse__comma(p); 
             else if (p.c == '\"') json::parse__quote(p);
@@ -308,14 +299,16 @@ class json {
     }
     private: static void parse__left_brace(json::parsing& p) {
         if (p.ps.top() == json::parsing::READING_OBJECT_VALUE) {
-            p.js.top()->insert({p.key, json::object()});
+            static_cast<json::object*>(p.js.top())->insert({p.key, json::object()});
             p.js.push(static_cast<json::object*>(p.js.top())->find(p.key)->second.v);
-            p.no++;
-            p.ps.push(json::parsing::READING_OBJECT_KEY);
         } else if (p.ps.top() == json::parsing::READING_ARRAY_VALUE) {
+            static_cast<json::array*>(p.js.top())->push_back(json::object());
+            p.js.push(static_cast<json::array*>(p.js.top())->back().v);
         } else {
             throw std::invalid_argument(std::string("Invalid character '{' at "));
         }
+        p.no++;
+        p.ps.push(json::parsing::READING_OBJECT_KEY);
     }
     private: static void parse__right_brace(json::parsing& p) {
         if (p.no == 0) {
@@ -325,22 +318,52 @@ class json {
 
         if (p.ps.top() == json::parsing::READ_VALUE) {
             p.finish_reading();
-            p.js.top()->insert({p.key, p.value});
-            p.ps.pop();
-            p.ps.push(json::parsing::READ_OBJECT_VALUE);
-            p.js.pop();
+            static_cast<json::object*>(p.js.top())->insert({p.key, p.value});
         } else if (
             p.ps.top() == json::parsing::READ_OBJECT_VALUE ||
             p.ps.top() == json::parsing::READ_ARRAY_VALUE
         ) {
             p.finish_reading();
-            //p.js.top()->insert({p.key, p.value});
-            p.ps.pop();
-            p.ps.push(json::parsing::READ_OBJECT_VALUE);
-            p.js.pop();
         } else {
             throw std::invalid_argument(std::string("Invalid character 'finish' at "));
         }
+        p.ps.pop();
+        p.ps.push(json::parsing::READ_OBJECT_VALUE);
+        p.js.pop();
+    }
+    private: static void parse__left_bracket(json::parsing& p) {
+        if (p.ps.top() == json::parsing::READING_OBJECT_VALUE) {
+            static_cast<json::object*>(p.js.top())->insert({p.key, json::array()});
+            p.js.push(static_cast<json::object*>(p.js.top())->find(p.key)->second.v);
+        } else if (p.ps.top() == json::parsing::READING_ARRAY_VALUE) {
+            static_cast<json::array*>(p.js.top())->push_back(json::array());
+            p.js.push(static_cast<json::array*>(p.js.top())->back().v);
+        } else {
+            throw std::invalid_argument(std::string("Invalid character '{' at "));
+        }
+        p.na++;
+        p.ps.push(json::parsing::READING_ARRAY_VALUE);
+    }
+    private: static void parse__right_bracket(json::parsing& p) {
+        if (p.na == 0) {
+            // error
+        }
+        p.na--;
+
+        if (p.ps.top() == json::parsing::READ_VALUE) {
+            p.finish_reading();
+            static_cast<json::array*>(p.js.top())->push_back(p.value);
+        } else if (
+            p.ps.top() == json::parsing::READ_OBJECT_VALUE ||
+            p.ps.top() == json::parsing::READ_ARRAY_VALUE
+        ) {
+            p.finish_reading();
+        } else {
+            throw std::invalid_argument(std::string("Invalid character 'finish bracket' at "));
+        }
+        p.ps.pop();
+        p.ps.push(json::parsing::READ_ARRAY_VALUE);
+        p.js.pop();
     }
     private: static void parse__colon(json::parsing& p) {
         if (p.ps.top() == json::parsing::READ_KEY) {
@@ -350,9 +373,16 @@ class json {
         }
     }
     private: static void parse__comma(json::parsing& p) {
+        std::cerr << "parse__comma"
+                  << " | p.ps.top() = " << p.ps.top()
+                  << std::endl;
         if (p.ps.top() == json::parsing::READ_VALUE) {
             p.finish_reading();
-            p.js.top()->insert({p.key, p.value});
+            if (p.ps.top() == json::parsing::READING_OBJECT_KEY) {
+                static_cast<json::object*>(p.js.top())->insert({p.key, p.value});
+            } else {  // json::parsing::READING_ARRAY_VALUE
+                static_cast<json::array*>(p.js.top())->push_back(p.value);
+            }
         } else if (
             p.ps.top() == json::parsing::READ_OBJECT_VALUE ||
             p.ps.top() == json::parsing::READ_ARRAY_VALUE
@@ -398,6 +428,10 @@ class json {
         }
     }
     private: static void parse__else(json::parsing& p) {
+        std::cerr << "json::parse__else"
+                  << " | p.c = " << p.c
+                  << " | p.ps.top() = " << p.ps.top()
+                  << std::endl;
         if (
             p.ps.top() == json::parsing::READING_OBJECT_VALUE || 
             p.ps.top() == json::parsing::READING_ARRAY_VALUE
@@ -408,6 +442,9 @@ class json {
             while (p.iss.get(p.c)) {
                 if (p.c == ' ' || p.c == ',' || p.c == ']' || p.c == '}') {
                     std::string v = p.s.str();
+                    std::cerr << "json::parse__else | while | if"
+                              << " | v = " << v
+                              << std::endl;
                     if (v == "null") {
                         p.value = json::null();
                     } else if (v == "true") {
@@ -415,11 +452,15 @@ class json {
                     } else if (v == "false") {
                         p.value = json::boolean(false);
                     } else {
+                        std::cerr << "json::parse__else | while | else 0"
+                                << std::endl;
                         if (v.find('.') != std::string::npos) {
                             p.value = json::number(std::stod(v));
                         } else {
                             p.value = json::integer(std::stol(v));
                         }
+                        std::cerr << "json::parse__else | while | else 1"
+                                << std::endl;
                     }
                     p.ps.push(json::parsing::READ_VALUE);
                     p.iss.seekg(-1, std::ios::cur);
