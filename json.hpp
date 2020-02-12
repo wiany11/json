@@ -34,40 +34,26 @@ class json {
         virtual ~base() = default;
     };
 
-    public: struct null : json::base {
-        null() {}
-    };
+    public: struct null : json::base {};
 
     public: struct boolean : json::base {
         bool v;
-
-        boolean(bool v) {
-            this->v = v;
-        }
+        boolean(bool v) : v(v) {}
     };
 
     public: struct integer : json::base {
         long v;
-
-        integer(long v) {
-            this->v = v;
-        }
+        integer(long v) : v(v) {}
     };
 
     public: struct number : json::base {
         double v;
-
-        number(double v) {
-            this->v = v;
-        }
+        number(double v) : v(v) {}
     };
 
     public: struct string : json::base {
         std::string v;
-
-        string(const std::string& v) {
-            this->v = v;
-        }
+        string(const std::string& v) : v(v) {}
     };
 
     private: struct value {
@@ -75,104 +61,87 @@ class json {
 
         value() {}
 
-        value(bool v) {
-            this->v = new json::boolean(v);
-        }
+        value(bool v) : v(new json::boolean(v)) {}
 
-        value(long v) {
-            this->v = new json::integer(v);
-        }
+        value(long v) : v(new json::integer(v)) {}
 
         value(int v) : value(static_cast<long>(v)) {}
 
-        value(double v) {
-            this->v = new json::number(v);
-        }
+        value(double v) : v(new json::number(v)) {}
 
         value(float v) : value(static_cast<double>(v)) {}
 
-        value(const char* v) {
-            if (v) {
-                this->v = new json::string(v);
-            } else {
-                this->v = new json::null();
-            }
-        } 
+        value(const char* v) {if (v) this->v = new json::string(v); else this->v = new json::null();}
 
-        value(const std::vector<json::value>& v) {
-            this->v = new json::array(v);
-        }
+        value(const std::vector<json::value>& v) : v(new json::array(v)) {}
 
-        value(const std::unordered_map<std::string, json::value>& v) {
-            this->v = new json::object(v);
-        }
+        value(const std::unordered_map<std::string, json::value>& v) : v(new json::object(v)) {}
 
-        value(const json::null& v) {
-            this->v = new json::null(v);
-        }
+        value(const json::null& v) : v(new json::null(v)) {}
 
-        value(const json::boolean& v) {
-            this->v = new json::boolean(v);
-        }
+        value(const json::boolean& v) : v(new json::boolean(v)) {}
 
-        value(const json::integer& v) {
-            this->v = new json::integer(v);
-        }
+        value(const json::integer& v) : v(new json::integer(v)) {}
 
-        value(const json::number& v) {
-            this->v = new json::number(v);
-        }
+        value(const json::number& v) : v(new json::number(v)) {}
 
-        value(const json::string& v) {
-            this->v = new json::string(v);
-        }
+        value(const json::string& v) : v(new json::string(v)) {}
 
-        value(const json::array& v) {
-            this->v = new json::array(v);
-        }
+        value(const json::array& v) : v(new json::array(v)) {}
 
-        value(const json::object& v) {
-            this->v = new json::object(v);
-        }
+        value(const json::object& v) : v(new json::object(v)) {}
 
-        value(const json::value& that) {
-            *this = that;
-        }
+        value(const json::value& that) {*this = that;}
 
         json::value& operator=(const json::value& that) {
             if (this != &that) {
-                if (this->v) {
-                    this->~value();
-                }
-                if (const json::null* v = dynamic_cast<const json::null*>(that.v)) {
-                    this->v = new json::null();
-                } else if (const json::boolean* v = dynamic_cast<const json::boolean*>(that.v)) {
-                    this->v = new json::boolean(*v);
-                } else if (const json::integer* v = dynamic_cast<const json::integer*>(that.v)) {
-                    this->v = new json::integer(*v);
-                } else if (const json::number* v = dynamic_cast<const json::number*>(that.v)) {
-                    this->v = new json::number(*v);
-                } else if (const json::string* v = dynamic_cast<const json::string*>(that.v)) {
-                    this->v = new json::string(*v);
-                } else if (const json::array* v = dynamic_cast<const json::array*>(that.v)) {
-                    this->v = new json::array(*v);
-                } else if (const json::object* v = dynamic_cast<const json::object*>(that.v)) {
-                    this->v = new json::object(*v);
-                }
+                if (this->v) this->~value();
+
+                if      (const json::null*    v = dynamic_cast<const json::null*   >(that.v)) this->v = new json::null   (  );
+                else if (const json::boolean* v = dynamic_cast<const json::boolean*>(that.v)) this->v = new json::boolean(*v);
+                else if (const json::integer* v = dynamic_cast<const json::integer*>(that.v)) this->v = new json::integer(*v);
+                else if (const json::number*  v = dynamic_cast<const json::number* >(that.v)) this->v = new json::number (*v);
+                else if (const json::string*  v = dynamic_cast<const json::string* >(that.v)) this->v = new json::string (*v);
+                else if (const json::array*   v = dynamic_cast<const json::array*  >(that.v)) this->v = new json::array  (*v);
+                else if (const json::object*  v = dynamic_cast<const json::object* >(that.v)) this->v = new json::object (*v);
             }
             return *this;
         }
-        
-        ~value() {
-            delete this->v;
-        }
+
+        ~value() {delete this->v;}
 
         void push_back(const json::value& v) {
-            static_cast<json::array*>(this->v)->push_back(v);
+            json::array* that_v;
+            if (that_v = dynamic_cast<json::array*>(this->v))
+                that_v->push_back(v);
+            else {
+                std::stringstream ss;
+                if      (const json::null*    that_v = dynamic_cast<const json::null*   >(this->v)) ss << "'json::null";
+                else if (const json::boolean* that_v = dynamic_cast<const json::boolean*>(this->v)) ss << "'json::boolean";
+                else if (const json::integer* that_v = dynamic_cast<const json::integer*>(this->v)) ss << "'json::integer";
+                else if (const json::number*  that_v = dynamic_cast<const json::number* >(this->v)) ss << "'json::number";
+                else if (const json::string*  that_v = dynamic_cast<const json::string* >(this->v)) ss << "'json::string";
+                else if (const json::object*  that_v = dynamic_cast<const json::object* >(this->v)) ss << "'json::object";
+                ss << "' has no member named 'push_back'";
+                throw std::runtime_error(ss.str());
+            }
         }
 
         void insert(const std::pair<std::string, json::value>& v) {
-            static_cast<json::object*>(this->v)->insert(v);
+            json::object* that_v;
+            if (that_v = dynamic_cast<json::object*>(this->v))
+                that_v->insert(v);
+            else {
+                std::stringstream ss;
+                if      (const json::null*    that_v = dynamic_cast<const json::null*   >(this->v)) ss << "'json::null";
+                else if (const json::boolean* that_v = dynamic_cast<const json::boolean*>(this->v)) ss << "'json::boolean";
+                else if (const json::integer* that_v = dynamic_cast<const json::integer*>(this->v)) ss << "'json::integer";
+                else if (const json::number*  that_v = dynamic_cast<const json::number* >(this->v)) ss << "'json::number";
+                else if (const json::string*  that_v = dynamic_cast<const json::string* >(this->v)) ss << "'json::string";
+                else if (const json::array*   that_v = dynamic_cast<const json::array*  >(this->v)) ss << "'json::array";
+                ss << "' has no member named 'insert'";
+                throw std::runtime_error(ss.str());
+            }
         }
     };
 
@@ -181,25 +150,15 @@ class json {
 
         array() {}
 
-        array(const std::vector<json::value>& v) {
-            this->v = v;
-        }
+        array(const std::vector<json::value>& v) : v(v) {}
 
-        void push_back(const json::value& v) {
-            this->v.push_back(v);            
-        }
+        bool empty() const {return this->v.empty();}
 
-        bool empty() const {
-            return this->v.empty();
-        }
+        std::size_t size() const {return this->v.size();}
 
-        std::size_t size() const {
-            return this->v.size();
-        }
+        json::value& back() {return this->v.back();}
 
-        json::value& back() {
-            return this->v.back();
-        }
+        void push_back(const json::value& v) {this->v.push_back(v);}
     };
 
     public: struct object : json::base {
@@ -207,39 +166,23 @@ class json {
 
         object() {}
 
-        object(const std::unordered_map<std::string, json::value>& v) {
-            this->v = v;
-        }
+        object(const std::unordered_map<std::string, json::value>& v) : v(v) {}
 
-        void insert(const std::pair<std::string, json::value>& p) {
-            std::unordered_map<std::string, json::value>::iterator it = this->v.find(std::get<0>(p));
-            if (it != this->v.end()) {
-                it->second = json::value(std::get<1>(p));
-            } else {
-                this->v.insert({std::get<0>(p), json::value(std::get<1>(p))});
-            }
-        }
+        bool empty() const {return this->v.empty();}
 
-        bool empty() const {
-            return this->v.empty();
-        }
+        std::size_t size() const {return this->v.size();}
 
-        std::size_t size() const {
-            return this->v.size();
-        }
+        std::unordered_map<std::string, json::value>::iterator find(const std::string& k) {return this->v.find(k);}
 
-        std::unordered_map<std::string, json::value>::iterator find(const std::string& k) {
-            return this->v.find(k);
-        }
-    }; 
+        void insert(const std::pair<std::string, json::value>& p) {this->v[std::get<0>(p)] = json::value(std::get<1>(p));}
+    };
 
     private: struct parsing {
         enum status {
             READING_OBJECT_KEY,
-            READ_KEY,
+            READ_OBJECT_KEY,
             READING_OBJECT_VALUE, READING_ARRAY_VALUE,
-            READ_OBJECT_VALUE, READ_ARRAY_VALUE,
-            READ_VALUE
+            READ_OBJECT_VALUE, READ_ARRAY_VALUE, READ_OTHER_VALUE
         };
 
         std::stack<json::parsing::status> ps;
@@ -256,7 +199,7 @@ class json {
         char c;
         std::size_t i = 1;
         std::istringstream iss;
-        
+
         parsing(const std::string& s) {
             this->iss.str(s);
         }
@@ -291,10 +234,10 @@ class json {
             else if (p.c == '}' ) json::parse__right_brace(p);
             else if (p.c == '[' ) json::parse__left_bracket(p);
             else if (p.c == ']' ) json::parse__right_bracket(p);
-            else if (p.c == ':' ) json::parse__colon(p); 
-            else if (p.c == ',' ) json::parse__comma(p); 
+            else if (p.c == ':' ) json::parse__colon(p);
+            else if (p.c == ',' ) json::parse__comma(p);
             else if (p.c == '\"') json::parse__quote(p);
-            else                  json::parse__else(p);  
+            else                  json::parse__else(p);
         }
     }
     private: static void parse__left_brace(json::parsing& p) {
@@ -316,7 +259,7 @@ class json {
         }
         p.no--;
 
-        if (p.ps.top() == json::parsing::READ_VALUE) {
+        if (p.ps.top() == json::parsing::READ_OTHER_VALUE) {
             p.finish_reading();
             static_cast<json::object*>(p.js.top())->insert({p.key, p.value});
         } else if (
@@ -350,7 +293,7 @@ class json {
         }
         p.na--;
 
-        if (p.ps.top() == json::parsing::READ_VALUE) {
+        if (p.ps.top() == json::parsing::READ_OTHER_VALUE) {
             p.finish_reading();
             static_cast<json::array*>(p.js.top())->push_back(p.value);
         } else if (
@@ -366,7 +309,7 @@ class json {
         p.js.pop();
     }
     private: static void parse__colon(json::parsing& p) {
-        if (p.ps.top() == json::parsing::READ_KEY) {
+        if (p.ps.top() == json::parsing::READ_OBJECT_KEY) {
             p.ps.push(json::parsing::READING_OBJECT_VALUE);
         } else {
             throw std::invalid_argument(std::string("Invalid character ':' at "));
@@ -376,7 +319,7 @@ class json {
         std::cerr << "parse__comma"
                   << " | p.ps.top() = " << p.ps.top()
                   << std::endl;
-        if (p.ps.top() == json::parsing::READ_VALUE) {
+        if (p.ps.top() == json::parsing::READ_OTHER_VALUE) {
             p.finish_reading();
             if (p.ps.top() == json::parsing::READING_OBJECT_KEY) {
                 static_cast<json::object*>(p.js.top())->insert({p.key, p.value});
@@ -418,13 +361,13 @@ class json {
         std::string s = ss.str();
         if (p.ps.top() == json::parsing::READING_OBJECT_KEY) {
             p.key = s;
-            p.ps.push(json::parsing::READ_KEY);
+            p.ps.push(json::parsing::READ_OBJECT_KEY);
         } else if (
             p.ps.top() == json::parsing::READING_OBJECT_VALUE ||
             p.ps.top() == json::parsing::READING_ARRAY_VALUE
         ) {
             p.value = json::value(s);
-            p.ps.push(json::parsing::READ_VALUE);
+            p.ps.push(json::parsing::READ_OTHER_VALUE);
         }
     }
     private: static void parse__else(json::parsing& p) {
@@ -433,7 +376,7 @@ class json {
                   << " | p.ps.top() = " << p.ps.top()
                   << std::endl;
         if (
-            p.ps.top() == json::parsing::READING_OBJECT_VALUE || 
+            p.ps.top() == json::parsing::READING_OBJECT_VALUE ||
             p.ps.top() == json::parsing::READING_ARRAY_VALUE
         ) {
             p.s.str("");
@@ -462,7 +405,7 @@ class json {
                         std::cerr << "json::parse__else | while | else 1"
                                 << std::endl;
                     }
-                    p.ps.push(json::parsing::READ_VALUE);
+                    p.ps.push(json::parsing::READ_OTHER_VALUE);
                     p.iss.seekg(-1, std::ios::cur);
                     break;
                 } else {
