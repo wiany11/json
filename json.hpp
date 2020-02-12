@@ -73,9 +73,9 @@ class json {
 
         value(const char* v) {if (v) this->v = new json::string(v); else this->v = new json::null();}
 
-        value(const std::vector<json::value>& v) : v(new json::array(v)) {}
+        //value(const std::vector<json::value>& v) : v(new json::array(v)) {}
 
-        value(const std::unordered_map<std::string, json::value>& v) : v(new json::object(v)) {}
+        //value(const std::unordered_map<std::string, json::value>& v) : v(new json::object(v)) {}
 
         value(const json::null& v) : v(new json::null(v)) {}
 
@@ -168,6 +168,14 @@ class json {
 
         object(const std::unordered_map<std::string, json::value>& v) : v(v) {}
 
+        object(const json::value& j) {
+            if (json::object* that = dynamic_cast<json::object*>(j.v)) {
+                this->v = that->v;
+            } else {
+                throw std::invalid_argument("cannot be json::object...");
+            }
+        }
+
         bool empty() const {return this->v.empty();}
 
         std::size_t size() const {return this->v.size();}
@@ -212,17 +220,21 @@ class json {
             }
         }
     };
-    public: static void parse(const std::string& s, json::base* j) {
+    public: static json::value parse(const std::string& s) {
+        json::value j;
         json::parsing p(s);
-        p.js.push(j);
 
         while (p.iss.get(p.c)) {
             if (p.c == ' ') {
             } else if (p.c == '{') {
                 p.ps.push(json::parsing::READING_OBJECT_KEY);
+                j = json::object();
+                p.js.push(j.v);
                 break;
             } else if (p.c == '[') {
                 p.ps.push(json::parsing::READING_ARRAY_VALUE);
+                j = json::array();
+                p.js.push(j.v);
                 break;
             }
         }
@@ -239,6 +251,8 @@ class json {
             else if (p.c == '\"') json::parse__quote(p);
             else                  json::parse__else(p);
         }
+
+        return j;
     }
     private: static void parse__left_brace(json::parsing& p) {
         if (p.ps.top() == json::parsing::READING_OBJECT_VALUE) {

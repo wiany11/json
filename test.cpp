@@ -42,8 +42,7 @@ int main() {
     std::string line;
     while (std::getline(f, line)) {
         std::cout << line << std::endl;
-        json::object j;
-        json::parse(line, &j);
+        json::object j = json::parse(line);
         std::cerr << "main | while"
                   << " | j = " << j
                   << std::endl;
