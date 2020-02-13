@@ -85,13 +85,16 @@ class json {
         value(double v)              : v(new json::number(v)) {}
         value(const json::number& v) : v(new json::number(v)) {}
 
-        value(const char* v) {if (v) this->v = new json::string(v); else this->v = new json::null();}
-
         value(const json::string& v) : v(new json::string(v)) {}
 
         value(const json::array& v) : v(new json::array(v)) {}
 
         value(const json::object& v) : v(new json::object(v)) {}
+
+        value(const char* v) {
+            if (v) this->v = new json::string(v);
+            else   this->v = new json::null();
+        }
 
         value(const json::value& that) {*this = that;}
 
@@ -130,7 +133,10 @@ class json {
 
         array(const std::vector<json::value>& v) : v(v) {}
 
-        //array(const json::value& j) {}
+        array(const json::value& j) {
+            if (json::array* that = dynamic_cast<json::array*>(j.v)) this->v = that->v;
+            else throw std::invalid_argument("cannot be json::array...");
+        }
 
         bool empty() const {return this->v.empty();}
 

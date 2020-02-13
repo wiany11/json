@@ -29,6 +29,8 @@ int main() {
     j11.insert({"numbers", json::array({2, 4, 8, 11, 15})});
     j11.find("book")->second.push_back(json::object({{"4", 4}}));
     j11.find("book")->second.push_back(true);
+    j11.find("book")->second.push_back(1);
+    j11.find("book")->second.push_back(1.2);
     std::cout << j11 << std::endl;
 
     //json::object j12({
