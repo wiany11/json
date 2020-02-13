@@ -9,11 +9,7 @@
 #include <vector>
 
 class json {
-    private: struct value;
-    public: struct array;
-    public: struct object;
-
-    public: static std::string escape(const std::string& s) {
+    private: static std::string escape(const std::string& s) {
         std::stringstream ss;
         for (std::size_t i = 0; i < s.size(); i++) {
             switch (s.at(i)) {
@@ -32,6 +28,17 @@ class json {
 
     private: struct base {
         virtual ~base() = default;
+
+        std::string type() {
+            if      (dynamic_cast<const json::null*   >(this)) return "json::null";
+            else if (dynamic_cast<const json::boolean*>(this)) return "json::boolean";
+            else if (dynamic_cast<const json::integer*>(this)) return "json::integer";
+            else if (dynamic_cast<const json::number* >(this)) return "json::number";
+            else if (dynamic_cast<const json::string* >(this)) return "json::string";
+            else if (dynamic_cast<const json::array*  >(this)) return "json::array";
+            else if (dynamic_cast<const json::object* >(this)) return "json::object";
+            else throw std::invalid_argument("Not 'json::value' type...");
+        }
     };
 
     public: struct null : json::base {};
@@ -56,34 +63,29 @@ class json {
         string(const std::string& v) : v(v) {}
     };
 
+    public: struct array;
+
+    public: struct object;
+
     private: struct value {
         json::base* v = nullptr;
 
         value() {}
 
-        value(bool v) : v(new json::boolean(v)) {}
-
-        value(long v) : v(new json::integer(v)) {}
-
-        value(int v) : value(static_cast<long>(v)) {}
-
-        value(double v) : v(new json::number(v)) {}
-
-        value(float v) : value(static_cast<double>(v)) {}
-
-        value(const char* v) {if (v) this->v = new json::string(v); else this->v = new json::null();}
-
-        //value(const std::vector<json::value>& v) : v(new json::array(v)) {}
-
-        //value(const std::unordered_map<std::string, json::value>& v) : v(new json::object(v)) {}
-
         value(const json::null& v) : v(new json::null(v)) {}
 
+        value(bool v)                 : v(new json::boolean(v)) {}
         value(const json::boolean& v) : v(new json::boolean(v)) {}
 
+        value(int v)                  : v(new json::integer(v)) {}
+        value(long v)                 : v(new json::integer(v)) {}
         value(const json::integer& v) : v(new json::integer(v)) {}
 
+        value(float v)               : v(new json::number(v)) {}
+        value(double v)              : v(new json::number(v)) {}
         value(const json::number& v) : v(new json::number(v)) {}
+
+        value(const char* v) {if (v) this->v = new json::string(v); else this->v = new json::null();}
 
         value(const json::string& v) : v(new json::string(v)) {}
 
@@ -111,37 +113,13 @@ class json {
         ~value() {delete this->v;}
 
         void push_back(const json::value& v) {
-            json::array* that_v;
-            if (that_v = dynamic_cast<json::array*>(this->v))
-                that_v->push_back(v);
-            else {
-                std::stringstream ss;
-                if      (const json::null*    that_v = dynamic_cast<const json::null*   >(this->v)) ss << "'json::null";
-                else if (const json::boolean* that_v = dynamic_cast<const json::boolean*>(this->v)) ss << "'json::boolean";
-                else if (const json::integer* that_v = dynamic_cast<const json::integer*>(this->v)) ss << "'json::integer";
-                else if (const json::number*  that_v = dynamic_cast<const json::number* >(this->v)) ss << "'json::number";
-                else if (const json::string*  that_v = dynamic_cast<const json::string* >(this->v)) ss << "'json::string";
-                else if (const json::object*  that_v = dynamic_cast<const json::object* >(this->v)) ss << "'json::object";
-                ss << "' has no member named 'push_back'";
-                throw std::runtime_error(ss.str());
-            }
+            if (json::array* that_v = dynamic_cast<json::array*>(this->v)) that_v->push_back(v);
+            else throw std::runtime_error("'" + this->v->type() + "' has no member named 'push_back'");
         }
 
         void insert(const std::pair<std::string, json::value>& v) {
-            json::object* that_v;
-            if (that_v = dynamic_cast<json::object*>(this->v))
-                that_v->insert(v);
-            else {
-                std::stringstream ss;
-                if      (const json::null*    that_v = dynamic_cast<const json::null*   >(this->v)) ss << "'json::null";
-                else if (const json::boolean* that_v = dynamic_cast<const json::boolean*>(this->v)) ss << "'json::boolean";
-                else if (const json::integer* that_v = dynamic_cast<const json::integer*>(this->v)) ss << "'json::integer";
-                else if (const json::number*  that_v = dynamic_cast<const json::number* >(this->v)) ss << "'json::number";
-                else if (const json::string*  that_v = dynamic_cast<const json::string* >(this->v)) ss << "'json::string";
-                else if (const json::array*   that_v = dynamic_cast<const json::array*  >(this->v)) ss << "'json::array";
-                ss << "' has no member named 'insert'";
-                throw std::runtime_error(ss.str());
-            }
+            if (json::object* that_v = dynamic_cast<json::object*>(this->v)) that_v->insert(v);
+            else throw std::runtime_error("'" + this->v->type() + "' has no member named 'insert'");
         }
     };
 
@@ -151,6 +129,8 @@ class json {
         array() {}
 
         array(const std::vector<json::value>& v) : v(v) {}
+
+        //array(const json::value& j) {}
 
         bool empty() const {return this->v.empty();}
 
@@ -169,11 +149,8 @@ class json {
         object(const std::unordered_map<std::string, json::value>& v) : v(v) {}
 
         object(const json::value& j) {
-            if (json::object* that = dynamic_cast<json::object*>(j.v)) {
-                this->v = that->v;
-            } else {
-                throw std::invalid_argument("cannot be json::object...");
-            }
+            if (json::object* that = dynamic_cast<json::object*>(j.v)) this->v = that->v;
+            else throw std::invalid_argument("cannot be json::object...");
         }
 
         bool empty() const {return this->v.empty();}
