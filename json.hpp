@@ -179,11 +179,8 @@ class json {
         std::stack<json::parsing::status> ps;
         std::stack<json::base*> js;
 
-        json::object jo;
-        json::array ja;
         std::string key;
         json::value value;
-        std::stringstream s;
         std::size_t no = 0;
         std::size_t na = 0;
 
@@ -376,12 +373,11 @@ class json {
             p.ps.top() == json::parsing::READING_OBJECT_VALUE ||
             p.ps.top() == json::parsing::READING_ARRAY_VALUE
         ) {
-            p.s.str("");
-            p.s.clear();
-            p.s << p.c;
+            std::stringstream ss;
+            ss << p.c;
             while (p.iss.get(p.c)) {
                 if (p.c == ' ' || p.c == ',' || p.c == ']' || p.c == '}') {
-                    std::string v = p.s.str();
+                    std::string v = ss.str();
                     std::cerr << "json::parse__else | while | if"
                               << " | v = " << v
                               << std::endl;
@@ -406,7 +402,7 @@ class json {
                     p.iss.seekg(-1, std::ios::cur);
                     break;
                 } else {
-                    p.s << p.c;
+                    ss << p.c;
                 }
             }
         } else {
