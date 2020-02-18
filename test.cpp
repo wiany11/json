@@ -31,7 +31,7 @@ int main() {
     j11.find("book")->second.push_back(true);
     j11.find("book")->second.push_back(1);
     j11.find("book")->second.push_back(1.2);
-    std::cout << j11 << std::endl;
+    std::cout << j11.j_str() << std::endl;
 
     //json::object j12({
     //    {"name", "Wiany Illia"},
@@ -46,10 +46,9 @@ int main() {
         std::cout << line << std::endl;
         json::object j = json::parse(line);
         std::cerr << "main | while"
-                  << " | j = " << j
+                  << " | j = " << j.j_str()
                   << std::endl;
     }
-
     
     return 0;
 }

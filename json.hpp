@@ -35,7 +35,7 @@ class json {
     }
 
     private: struct base {
-        private: static void str(json::base* that, std::string& jstr) {
+        private: static void j_str(json::base* that, std::string& jstr) {
             if (dynamic_cast<const json::null*>(that)) {
                 jstr += "null";
             } else if (const json::boolean* j = dynamic_cast<const json::boolean*>(that)) {
@@ -49,7 +49,7 @@ class json {
             } else if (const json::array* j = dynamic_cast<const json::array*>(that)) {
                 jstr += '[';
                 for (const json::value& e : *j) {
-                    json::base::str(e.v, jstr);
+                    json::base::j_str(e.v, jstr);
                     jstr += ',';
                 }
                 jstr.pop_back();
@@ -59,7 +59,7 @@ class json {
                 for (const std::pair<std::string, json::value>& e : *j) {
                     json::quote_and_escape(e.first.c_str(), e.first.size(), jstr);
                     jstr += ':';
-                    json::base::str(e.second.v, jstr);
+                    json::base::j_str(e.second.v, jstr);
                     jstr += ',';
                 }
                 jstr.pop_back();
@@ -74,9 +74,9 @@ class json {
             else                              return false;
         }
 
-        public: std::string str() {
+        public: std::string j_str() {
             std::string jstr;
-            json::base::str(this, jstr);
+            json::base::j_str(this, jstr);
             return jstr;
         }
     };
@@ -469,59 +469,5 @@ class json {
             throw std::invalid_argument(std::string("Invalid character 'else' at "));
         }
     }
-
-    friend std::ostream& operator<<(std::ostream& os, json::null&    j);
-    friend std::ostream& operator<<(std::ostream& os, json::boolean& j);
-    friend std::ostream& operator<<(std::ostream& os, json::integer& j);
-    friend std::ostream& operator<<(std::ostream& os, json::number&  j);
-    friend std::ostream& operator<<(std::ostream& os, json::string&  j);
-    friend std::ostream& operator<<(std::ostream& os, json::value&   j);
 };
-
-std::ostream& operator<<(std::ostream& os, json::null& j) {
-    (void) j;
-    os << "null";
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, json::boolean& j) {
-    os << (static_cast<bool>(j) ? "true" : "false");
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, json::integer& j) {
-    os << static_cast<long>(j);
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, json::number& j) {
-    os << static_cast<double>(j);
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, json::string& j) {
-    os << j.c_str();
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, json::array& j) {
-    os << "json::array of size " << j.size();
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, json::object& j) {
-    os << "json::object of size " << j.size();
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, json::value& j) {
-    if      (json::null*    v = dynamic_cast<json::null*   >(j.v)) os << *v;
-    else if (json::boolean* v = dynamic_cast<json::boolean*>(j.v)) os << *v;
-    else if (json::integer* v = dynamic_cast<json::integer*>(j.v)) os << *v;
-    else if (json::number*  v = dynamic_cast<json::number* >(j.v)) os << *v;
-    else if (json::string*  v = dynamic_cast<json::string* >(j.v)) os << *v;
-    else if (json::array*   v = dynamic_cast<json::array*  >(j.v)) os << *v;
-    else if (json::object*  v = dynamic_cast<json::object* >(j.v)) os << *v;
-    return os;
-}
 
