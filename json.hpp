@@ -1,7 +1,4 @@
-#include <fstream>
-#include <iomanip>
 #include <iostream>
-#include <sstream>
 #include <stdexcept>
 #include <stack>
 #include <string>
@@ -270,15 +267,19 @@ class json {
                 this->s.pop();  // parsing::OBJECT_KEY
             }
         }
+
+        void throw__invalid_argument() {
+            throw std::invalid_argument(std::string("Invalid character '") + *this->c + "' at " + std::to_string(this->i) + "...");
+        }
     };
     public: static json::value parse(const std::string& jstr) {
         json::value j;
         json::parsing p(jstr);
 
         p.c--;
-        while (p.i++ < p.n) {
+        while (++p.i < p.n) {
             p.c++;
-            if (*p.c == ' ') {
+            if (*p.c == ' ') {  // other spaces
             } else if (*p.c == '{') {
                 p.s.push(json::parsing::OBJECT_KEY);
                 j = json::object();
@@ -292,7 +293,7 @@ class json {
             }
         }
 
-        while (p.i++ < p.n) {
+        while (++p.i < p.n) {
             p.c++;
             if      (*p.c == ' ' ) {}
             else if (*p.c == '{' ) json::parse__left_brace(p);
@@ -315,16 +316,13 @@ class json {
             static_cast<json::array*>(p.j.top())->push_back(json::object());
             p.j.push(static_cast<json::array*>(p.j.top())->back().v);
         } else {
-            throw std::invalid_argument(std::string("Invalid character '{' at "));
+            p.throw__invalid_argument();
         }
         p.no++;
         p.s.push(json::parsing::OBJECT_KEY);
     }
     private: static void parse__right_brace(json::parsing& p) {
-        if (p.no == 0) {
-            // error
-        }
-        p.no--;
+        if (p.no-- == 0) p.throw__invalid_argument();
 
         if (p.s.top() == json::parsing::VALUE_IS_DONE) {
             p.finish_reading();
@@ -335,7 +333,7 @@ class json {
         ) {
             p.finish_reading();
         } else {
-            throw std::invalid_argument(std::string("Invalid character 'finish' at "));
+            p.throw__invalid_argument();
         }
         p.s.pop();
         p.s.push(json::parsing::OBJECT_VALUE_IS_DONE);
@@ -349,16 +347,13 @@ class json {
             static_cast<json::array*>(p.j.top())->push_back(json::array());
             p.j.push(static_cast<json::array*>(p.j.top())->back().v);
         } else {
-            throw std::invalid_argument(std::string("Invalid character '{' at "));
+            p.throw__invalid_argument();
         }
         p.na++;
         p.s.push(json::parsing::ARRAY_VALUE);
     }
     private: static void parse__right_bracket(json::parsing& p) {
-        if (p.na == 0) {
-            // error
-        }
-        p.na--;
+        if (p.na-- == 0) p.throw__invalid_argument();
 
         if (p.s.top() == json::parsing::VALUE_IS_DONE) {
             p.finish_reading();
@@ -369,7 +364,7 @@ class json {
         ) {
             p.finish_reading();
         } else {
-            throw std::invalid_argument(std::string("Invalid character 'finish bracket' at "));
+            p.throw__invalid_argument();
         }
         p.s.pop();
         p.s.push(json::parsing::ARRAY_VALUE_IS_DONE);
@@ -379,7 +374,7 @@ class json {
         if (p.s.top() == json::parsing::OBJECT_KEY_IS_DONE) {
             p.s.push(json::parsing::OBJECT_VALUE);
         } else {
-            throw std::invalid_argument(std::string("Invalid character ':' at "));
+            p.throw__invalid_argument();
         }
     }
     private: static void parse__comma(json::parsing& p) {
@@ -396,13 +391,13 @@ class json {
         ) {
             p.finish_reading();
         } else {
-            throw std::invalid_argument(std::string("Invalid character ',' at "));
+            p.throw__invalid_argument();
         }
     }
     private: static void parse__quote(json::parsing& p) {
         std::string s;
         bool escaping = false;
-        while (p.i++ < p.n) {
+        while (++p.i < p.n) {
             p.c++;
             if (escaping) {
                 if      (*p.c == '\\') s += '\\';
@@ -412,9 +407,7 @@ class json {
                 else if (*p.c == 'n' ) s += '\n';
                 else if (*p.c == 'r' ) s += '\r';
                 else if (*p.c == 't' ) s += '\t';
-                else {
-                    //exception? \u?
-                }
+                else p.throw__invalid_argument();  // \u?
                 escaping = false;
             } else {
                 if      (*p.c == '\\') escaping = true;
@@ -441,22 +434,15 @@ class json {
         ) {
             std::string v;
             v += *p.c;
-            while (p.i++ < p.n) {
+            while (++p.i < p.n) {
                 p.c++;
                 if (*p.c == ' ' || *p.c == ',' || *p.c == ']' || *p.c == '}') {
-                    if (v == "null") {
-                        p.value = json::null();
-                    } else if (v == "true") {
-                        p.value = json::boolean(true);
-                    } else if (v == "false") {
-                        p.value = json::boolean(false);
-                    } else {
-                        if (v.find('.') != std::string::npos) {
-                            p.value = json::number(std::stod(v));
-                        } else {
-                            p.value = json::integer(std::stol(v));
-                        }
-                    }
+                    if      (v == "null" )                    p.value = json::null();
+                    else if (v == "true" )                    p.value = json::boolean(true);
+                    else if (v == "false")                    p.value = json::boolean(false);
+                    else
+                        if (v.find('.') != std::string::npos) p.value = json::number(std::stod(v));
+                        else                                  p.value = json::integer(std::stol(v));
                     p.s.push(json::parsing::VALUE_IS_DONE);
                     p.i--;
                     p.c--;
@@ -466,7 +452,7 @@ class json {
                 }
             }
         } else {
-            throw std::invalid_argument(std::string("Invalid character 'else' at "));
+            p.throw__invalid_argument();
         }
     }
 };
