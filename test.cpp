@@ -45,10 +45,11 @@ int main() {
     std::ifstream f("sample.jsonl");
     std::string line;
     while (std::getline(f, line)) {
-        std::cout << line << std::endl;
+        std::cout << "i: " << line 
+                  << std::endl;
         json::object j = json::parse(line);
-        std::cerr << "main | while"
-                  << " | j = " << j.j_str()
+        std::cerr << "o: " << j.j_str()
+                  << std::endl
                   << std::endl;
     }
     

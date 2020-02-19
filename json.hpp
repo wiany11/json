@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdexcept>
+#include <sstream>
 #include <stack>
 #include <string>
 #include <unordered_map>
@@ -252,13 +253,12 @@ class json {
         std::string key;
         json::value value;
 
-        const char* c;
-        std::size_t i = 0;
-        std::size_t n;
+        std::istream i;
+        char c;
         std::size_t no = 0;
         std::size_t na = 0;
 
-        parsing(const std::string& jstr) : c(jstr.c_str()), n(jstr.size()) {}
+        parsing(std::stringbuf* sb) : i(sb) {}
 
         void finish_reading() {
             this->s.pop();  // parsing::OBJECT/ARRAY_VALUE_IS_DONE -> parsing::OBJECT/ARRAY_VALUE
@@ -269,23 +269,26 @@ class json {
         }
 
         void throw__invalid_argument() {
-            throw std::invalid_argument(std::string("Invalid character '") + *this->c + "' at " + std::to_string(this->i) + "...");
+            throw std::invalid_argument(std::string("Invalid character '") + this->c + "' at " + std::to_string(this->i.tellg()) + "...");
         }
     };
     public: static json::value parse(const std::string& jstr) {
-        json::value j;
-        json::parsing p(jstr);
+        //std::filebuf fb;
+        std::stringbuf sb(jstr);
 
-        p.c--;
-        while (++p.i < p.n) {
-            p.c++;
-            if (*p.c == ' ') {  // other spaces
-            } else if (*p.c == '{') {
+        json::value j;
+        json::parsing p(&sb);
+
+        while (p.i.get(p.c)) {
+            if (p.c == ' ') {  // other spaces
+            } else if (p.c == '{') {
+                p.no++;
                 p.s.push(json::parsing::OBJECT_KEY);
                 j = json::object();
                 p.j.push(j.v);
                 break;
-            } else if (*p.c == '[') {
+            } else if (p.c == '[') {
+                p.na++;
                 p.s.push(json::parsing::ARRAY_VALUE);
                 j = json::array();
                 p.j.push(j.v);
@@ -293,16 +296,15 @@ class json {
             }
         }
 
-        while (++p.i < p.n) {
-            p.c++;
-            if      (*p.c == ' ' ) {}
-            else if (*p.c == '{' ) json::parse__left_brace(p);
-            else if (*p.c == '}' ) json::parse__right_brace(p);
-            else if (*p.c == '[' ) json::parse__left_bracket(p);
-            else if (*p.c == ']' ) json::parse__right_bracket(p);
-            else if (*p.c == ':' ) json::parse__colon(p);
-            else if (*p.c == ',' ) json::parse__comma(p);
-            else if (*p.c == '\"') json::parse__quote(p);
+        while (p.i.get(p.c)) {
+            if      (p.c == ' ' ) {}
+            else if (p.c == '{' ) json::parse__left_brace(p);
+            else if (p.c == '}' ) json::parse__right_brace(p);
+            else if (p.c == '[' ) json::parse__left_bracket(p);
+            else if (p.c == ']' ) json::parse__right_bracket(p);
+            else if (p.c == ':' ) json::parse__colon(p);
+            else if (p.c == ',' ) json::parse__comma(p);
+            else if (p.c == '\"') json::parse__quote(p);
             else                   json::parse__else(p);
         }
 
@@ -397,22 +399,21 @@ class json {
     private: static void parse__quote(json::parsing& p) {
         std::string s;
         bool escaping = false;
-        while (++p.i < p.n) {
-            p.c++;
+        while (p.i.get(p.c)) {
             if (escaping) {
-                if      (*p.c == '\\') s += '\\';
-                else if (*p.c == '\"') s += '\"';
-                else if (*p.c == 'b' ) s += '\b';
-                else if (*p.c == 'f' ) s += '\f';
-                else if (*p.c == 'n' ) s += '\n';
-                else if (*p.c == 'r' ) s += '\r';
-                else if (*p.c == 't' ) s += '\t';
+                if      (p.c == '\\') s += '\\';
+                else if (p.c == '\"') s += '\"';
+                else if (p.c == 'b' ) s += '\b';
+                else if (p.c == 'f' ) s += '\f';
+                else if (p.c == 'n' ) s += '\n';
+                else if (p.c == 'r' ) s += '\r';
+                else if (p.c == 't' ) s += '\t';
                 else p.throw__invalid_argument();  // \u?
                 escaping = false;
             } else {
-                if      (*p.c == '\\') escaping = true;
-                else if (*p.c == '\"') break;
-                else                   s += *p.c;
+                if      (p.c == '\\') escaping = true;
+                else if (p.c == '\"') break;
+                else                  s += p.c;
             }
         }
 
@@ -433,10 +434,9 @@ class json {
             p.s.top() == json::parsing::ARRAY_VALUE
         ) {
             std::string v;
-            v += *p.c;
-            while (++p.i < p.n) {
-                p.c++;
-                if (*p.c == ' ' || *p.c == ',' || *p.c == ']' || *p.c == '}') {
+            v += p.c;
+            while (p.i.get(p.c)) {
+                if (p.c == ' ' || p.c == ',' || p.c == ']' || p.c == '}') {
                     if      (v == "null" )                    p.value = json::null();
                     else if (v == "true" )                    p.value = json::boolean(true);
                     else if (v == "false")                    p.value = json::boolean(false);
@@ -444,11 +444,10 @@ class json {
                         if (v.find('.') != std::string::npos) p.value = json::number(std::stod(v));
                         else                                  p.value = json::integer(std::stol(v));
                     p.s.push(json::parsing::VALUE_IS_DONE);
-                    p.i--;
-                    p.c--;
+                    p.i.seekg(-1, std::ios::cur);
                     break;
                 } else {
-                    v += *p.c;
+                    v += p.c;
                 }
             }
         } else {

@@ -1,1 +1,22 @@
-  {  "name" : "GyuHyeon Choi", "age": null       ,   "handsome":true,"evil": false, "eyesight": 1.5,  "body": {"height": 174, "weight": 62.5 }  , "books" : {"a": 1, "b": 2, "c": 3}, "numbers" :    [2,  4.0, 8, null, 16, false, "32"  , true,  [0, false,   1, true], {"0": false,   "1":true}]}
+{"@id": "sample_1", "name": "동물계", "@score": 0.51}
+{"@id": "sample_2", "name": "척삭동물문", "@score": 0.7}
+{"@id": "sample_3", "name": "조기류 경골어강", "@score": 0.81}
+{"@id": "sample_4", "name": "열대송사리목", "@score": 0.61}
+{"@id": "sample_5", "name": "포에킬리아과", "@score": 0.88}
+{"@id": "sample_6", "name": "송사리과", "@score": 0.74}
+{"@id": "sample_7", "name": "포에킬리아속", "@score": 0.84}
+{"@id": "sample_8", "name": "커시포포라스속", "@score": 0.66}
+{"@id": "sample_9", "name": "구피", "@score": 0.87}
+{"@id": "sample_10", "name": "구피", "image": ["https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Guppy_pho_0048.jpg/220px-Guppy_pho_0048.jpg"], "수명": ["2~5년", "125년"], "수온": [{"value":"22~23","unit":"섭씨"}], "몸길이": [{"value":"6~3","unit": "cm", "text":"암컷 약 6cm, 수컷 약 3cm"}], "먹이": ["실지렁이, 장구벌레"], "원산지": ["트리니다드 토바고 및 브라질 북부, 베네수엘라"], "서식지": ["<중앙아메리카> & '남미 북부' & \"브라질 등\""], "kingdom": [{"@value": "sample_1"}], "phylum": [{"@value": "sample_2"}], "class": [{"@value": "sample_3"}], "order": [{"@value": "sample_4"}], "family": [{"@value": "sample_5"}], "genus": [{"@value": "sample_7", "??": "!!"}], "species": [{"@value": "sample_9", "????": "!!!!"}], "@score": 0.92}
+{"@id": "sample_11", "name": "고정구피", "mother": [{"@value": "sample_10"}], "father": [{"@value": "sample_10"}], "breed_of": [{"@value": "sample_10"}], "@score": 0.66}
+{"@id": "sample_15", "name": "막구피", "breed_of": [{"@value": "sample_10"}], "@score": 0.55}
+{"@id": "sample_13", "name": "루돌프 턱시도 구피", "breed_of": [{"@value": "sample_10"}], "@score": 0.73}
+{"@id": "sample_12", "name": "빅이어 레드 턱시도 구피", "breed_of": [{"@value": "sample_10"}], "@score": 0.89}
+{"@id": "sample_16", "name": "팬더 구피", "breed_of": [{"@value": "sample_10"}], "@score": 0.6}
+{"@id": "sample_14", "name": "블루 다이아몬드 구피", "breed_of": [{"@value": "sample_10"}], "@score": 0.74}
+{"@id": "sample_17", "name": "플래티", "image": ["https://upload.wikimedia.org/wikipedia/en/thumb/7/74/Male_and_female_blue_waggle.jpg/220px-Male_and_female_blue_waggle.jpg"], "이명": [{"value":"Moon Fish", "lang":"en"}, {"value":"달 고기", "lang": "ko"}], "수온": ["22도~27도", "227도"], "물_산도": ["ph 7.0~8.0 정도의 중성~약알칼리성 물"], "물갈이_주기": ["주기적인 부분 환수"], "먹이": ["구피와 동일, vivid fancy, 치어의 경우 jaqno decapsulated artemia, 일본 제품인 러브 라바 4호 양어장 1호"], "kingdom": [{"@value": "sample_1"}], "class": [{"@value": "sample_3"}], "breed_to": [{"@value": "sample_18"}, {"@value": "sample_19"}, {"@value": "sample_22"}, {"@value": "sample_21"}, {"@value": "sample_20", "abc": "defgh"}], "order": [{"@value": "sample_4"}], "family": [{"@value": "sample_6"}], "genus": [{"@value": "sample_8", "etc": "another"}], "phylum": [{"@value": "sample_2"}], "@score": 0.79}
+{"@id": "sample_18", "name": "하이핀 플래티", "@score": 0.94}
+{"@id": "sample_19", "name": "미키마우스 플래티", "@score": 0.72}
+{"@id": "sample_20", "name": "왁 플래티", "@score": 0.92}
+{"@id": "sample_21", "name": "삼각 플래티", "@score": 0.65}
+{"@id": "sample_22", "name": "헬멧 플래티", "@score": 0.64}
