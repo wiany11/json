@@ -46,7 +46,7 @@ class json {
                 json::quote_and_escape(j->c_str(), j->size(), jstr);
             } else if (const json::array* j = dynamic_cast<const json::array*>(that)) {
                 jstr += '[';
-                for (const json::value& e : *j) {
+                for (const json::type& e : *j) {
                     json::base::j_str(e.v, jstr);
                     jstr += ',';
                 }
@@ -54,7 +54,7 @@ class json {
                 jstr += ']';
             } else if (const json::object* j = dynamic_cast<const json::object*>(that)) {
                 jstr += '{';
-                for (const std::pair<std::string, json::value>& e : *j) {
+                for (const std::pair<std::string, json::type>& e : *j) {
                     json::quote_and_escape(e.first.c_str(), e.first.size(), jstr);
                     jstr += ':';
                     json::base::j_str(e.second.v, jstr);
@@ -104,36 +104,37 @@ class json {
         public:  string(const std::string& v) : v(v) {}
         public:  std::size_t size() const {return this->v.size();}
         public:  const char* c_str() const {return this->v.c_str();}
-        public:  operator std::string() const {return this->v;}
+        public:  operator std::string () const {return this->v;}
+        //public:  operator std::string&() const {return this->v;}
     };
 
-    private: struct value {
+    public: struct type {
         json::base* v = nullptr;
 
-        value() {}
-        value(const json::value& that) {*this = that;}
+        type() {}
+        type(const json::type& that) {*this = that;}
 
-        value(const json::null&    v) : v(new json::null   (v)) {}
-        value(bool                 v) : v(new json::boolean(v)) {}
-        value(const json::boolean& v) : v(new json::boolean(v)) {}
-        value(int                  v) : v(new json::integer(v)) {}
-        value(long                 v) : v(new json::integer(v)) {}
-        value(const json::integer& v) : v(new json::integer(v)) {}
-        value(float                v) : v(new json::number (v)) {}
-        value(double               v) : v(new json::number (v)) {}
-        value(const json::number&  v) : v(new json::number (v)) {}
-        value(const json::string&  v) : v(new json::string (v)) {}
-        value(const json::array&   v) : v(new json::array  (v)) {}
-        value(const json::object&  v) : v(new json::object (v)) {}
+        type(const json::null&    v) : v(new json::null   (v)) {}
+        type(bool                 v) : v(new json::boolean(v)) {}
+        type(const json::boolean& v) : v(new json::boolean(v)) {}
+        type(int                  v) : v(new json::integer(v)) {}
+        type(long                 v) : v(new json::integer(v)) {}
+        type(const json::integer& v) : v(new json::integer(v)) {}
+        type(float                v) : v(new json::number (v)) {}
+        type(double               v) : v(new json::number (v)) {}
+        type(const json::number&  v) : v(new json::number (v)) {}
+        type(const json::string&  v) : v(new json::string (v)) {}
+        type(const json::array&   v) : v(new json::array  (v)) {}
+        type(const json::object&  v) : v(new json::object (v)) {}
 
-        value(const char* v) {
+        type(const char* v) {
             if (v) this->v = new json::string(v);
             else   this->v = new json::null();
         }
 
-        json::value& operator=(const json::value& that) {
+        json::type& operator=(const json::type& that) {
             if (this != &that) {
-                if (this->v) this->~value();
+                if (this->v) this->~type();
 
                 if      (                         dynamic_cast<const json::null*   >(that.v)) this->v = new json::null   (  );
                 else if (const json::boolean* v = dynamic_cast<const json::boolean*>(that.v)) this->v = new json::boolean(*v);
@@ -146,13 +147,13 @@ class json {
             return *this;
         }
 
-        ~value() {delete this->v;}
+        ~type() {delete this->v;}
 
         template<typename T> bool is_type_of() const {
             return this->v->is_type_of<T>();
         }
 
-        void push_back(const json::value& v) {
+        void push_back(const json::type& v) {
             if (json::array* that_v = dynamic_cast<json::array*>(this->v)) {
                 that_v->push_back(v);
             } else {
@@ -167,7 +168,7 @@ class json {
             }
         }
 
-        void insert(const std::pair<std::string, json::value>& v) {
+        void insert(const std::pair<std::string, json::type>& v) {
             if (json::object* that_v = dynamic_cast<json::object*>(this->v)) {
                 that_v->insert(v);
             } else {
@@ -182,62 +183,77 @@ class json {
             }
         }
 
-        operator bool       () const {return *static_cast<json::boolean*>(this->v);}
-        operator long       () const {return *static_cast<json::integer*>(this->v);}
-        operator double     () const {return *static_cast<json::number* >(this->v);}
-        operator std::string() const {return *static_cast<json::string* >(this->v);}
+        std::string j_str() {
+            return this->v->j_str();
+        }
+
+        operator bool        () const {return *static_cast<json::boolean*>(this->v);}
+        operator int         () const {return *static_cast<json::integer*>(this->v);}
+        operator long        () const {return *static_cast<json::integer*>(this->v);}
+        operator float       () const {return *static_cast<json::number* >(this->v);}
+        operator double      () const {return *static_cast<json::number* >(this->v);}
+        operator std::string () const {return *static_cast<json::string* >(this->v);}
 
         operator json::null   () const {return *static_cast<json::null*   >(this->v);}
         operator json::boolean() const {return *static_cast<json::boolean*>(this->v);}
         operator json::integer() const {return *static_cast<json::integer*>(this->v);}
         operator json::number () const {return *static_cast<json::number* >(this->v);}
         operator json::string () const {return *static_cast<json::string* >(this->v);}
+        operator json::string&() const {return *static_cast<json::string* >(this->v);}
         operator json::array  () const {return *static_cast<json::array*  >(this->v);}
+        operator json::array& () const {return *static_cast<json::array*  >(this->v);}
         operator json::object () const {return *static_cast<json::object* >(this->v);}
+        operator json::object&() const {return *static_cast<json::object* >(this->v);}
     };
 
     public: struct array : json::base {
-        private: std::vector<json::value> v;
+        private: std::vector<json::type> v;
 
         public: array() {}
-        public: array(const std::vector<json::value>& v) : v(v) {}
-        public: array(const json::value& j) {this->v = static_cast<json::array*>(j.v)->v;}
+        public: array(const std::vector<json::type>& v) : v(v) {}
+        public: array(const json::type& j) {this->v = static_cast<json::array*>(j.v)->v;}
 
         public: bool empty() const {return this->v.empty();}
 
         public: std::size_t size() const {return this->v.size();}
 
-        public: json::value& back() {return this->v.back();}
+        public: json::type& back() {return this->v.back();}
 
-        public: void push_back(const json::value& v) {this->v.push_back(v);}
+        public: void push_back(const json::type& v) {this->v.push_back(v);}
 
-        public: std::vector<json::value>::iterator       begin()       {return this->v.begin();}
-        public: std::vector<json::value>::const_iterator begin() const {return this->v.begin();}
+        public: std::vector<json::type>::iterator       begin()       {return this->v.begin();}
+        public: std::vector<json::type>::const_iterator begin() const {return this->v.begin();}
 
-        public: std::vector<json::value>::iterator       end()       {return this->v.end();}
-        public: std::vector<json::value>::const_iterator end() const {return this->v.end();}
+        public: std::vector<json::type>::iterator       end()       {return this->v.end();}
+        public: std::vector<json::type>::const_iterator end() const {return this->v.end();}
     };
 
     public: struct object : json::base {
-        private: std::unordered_map<std::string, json::value> v;
+        private: std::unordered_map<std::string, json::type> v;
 
         public: object() {}
-        public: object(const std::unordered_map<std::string, json::value>& v) : v(v) {}
-        public: object(const json::value& j) {this->v = static_cast<json::object*>(j.v)->v;}
+        public: object(const std::unordered_map<std::string, json::type>& v) : v(v) {}
+        public: object(const json::type& j) {this->v = static_cast<json::object*>(j.v)->v;}
 
         public: bool empty() const {return this->v.empty();}
 
         public: std::size_t size() const {return this->v.size();}
 
-        public: std::unordered_map<std::string, json::value>::iterator find(const std::string& k) {return this->v.find(k);}
+        public: std::unordered_map<std::string, json::type>::iterator find(const std::string& k) {return this->v.find(k);}
+        public: std::unordered_map<std::string, json::type>::const_iterator find(const std::string& k) const {return this->v.find(k);}
 
-        public: void insert(const std::pair<std::string, json::value>& p) {this->v[std::get<0>(p)] = json::value(std::get<1>(p));}
+        public: void insert(const std::pair<std::string, json::type>& p) {this->v[std::get<0>(p)] = json::type(std::get<1>(p));}
 
-        public: std::unordered_map<std::string, json::value>::iterator       begin()       noexcept {return this->v.begin();}
-        public: std::unordered_map<std::string, json::value>::const_iterator begin() const noexcept {return this->v.begin();}
+        public: std::unordered_map<std::string, json::type>::iterator       begin()       noexcept {return this->v.begin();}
+        public: std::unordered_map<std::string, json::type>::const_iterator begin() const noexcept {return this->v.begin();}
 
-        public: std::unordered_map<std::string, json::value>::iterator       end()       noexcept {return this->v.end();}
-        public: std::unordered_map<std::string, json::value>::const_iterator end() const noexcept {return this->v.end();}
+        public: std::unordered_map<std::string, json::type>::iterator       end()       noexcept {return this->v.end();}
+        public: std::unordered_map<std::string, json::type>::const_iterator end() const noexcept {return this->v.end();}
+
+        //public: std::unordered_map<std::string, json::type>::iterator erase(std::unordered_map<std::string, json::type>::const_iterator position) {
+        //    return this->v.erase(position);
+        //}
+        public: std::size_t erase(const std::string& k) {return this->v.erase(k);}
     };
 
     private: struct parsing {
@@ -251,13 +267,14 @@ class json {
         std::stack<json::parsing::state> s;
         std::stack<json::base*> j;
         std::string key;
-        json::value value;
+        json::type value;
 
         std::istream i;
         char c;
         std::size_t no = 0;
         std::size_t na = 0;
 
+        parsing(std::filebuf* fb) : i(fb) {}
         parsing(std::stringbuf* sb) : i(sb) {}
 
         void finish_reading() {
@@ -272,13 +289,19 @@ class json {
             throw std::invalid_argument(std::string("Invalid character '") + this->c + "' at " + std::to_string(this->i.tellg()) + "...");
         }
     };
-    public: static json::value parse(const std::string& jstr) {
-        //std::filebuf fb;
+    public: static json::type load(const std::string& path) {
+        std::filebuf fb;
+        fb.open(path, std::ios::in);
+        json::parsing p(&fb);
+        return json::parse(p);
+    }
+    public: static json::type parse(const std::string& jstr) {
         std::stringbuf sb(jstr);
-
-        json::value j;
         json::parsing p(&sb);
-
+        return json::parse(p);
+    }
+    private: static json::type parse(json::parsing& p) {
+        json::type j;
         while (p.i.get(p.c)) {
             if (p.c == ' ') {  // other spaces
             } else if (p.c == '{') {
@@ -297,14 +320,14 @@ class json {
         }
 
         while (p.i.get(p.c)) {
-            if      (p.c == ' ' ) {}
-            else if (p.c == '{' ) json::parse__left_brace(p);
-            else if (p.c == '}' ) json::parse__right_brace(p);
-            else if (p.c == '[' ) json::parse__left_bracket(p);
-            else if (p.c == ']' ) json::parse__right_bracket(p);
-            else if (p.c == ':' ) json::parse__colon(p);
-            else if (p.c == ',' ) json::parse__comma(p);
-            else if (p.c == '\"') json::parse__quote(p);
+            if      (isspace(p.c)) {}
+            else if (p.c == '{'  ) json::parse__left_brace(p);
+            else if (p.c == '}'  ) json::parse__right_brace(p);
+            else if (p.c == '['  ) json::parse__left_bracket(p);
+            else if (p.c == ']'  ) json::parse__right_bracket(p);
+            else if (p.c == ':'  ) json::parse__colon(p);
+            else if (p.c == ','  ) json::parse__comma(p);
+            else if (p.c == '\"' ) json::parse__quote(p);
             else                   json::parse__else(p);
         }
 
@@ -424,7 +447,7 @@ class json {
             p.s.top() == json::parsing::OBJECT_VALUE ||
             p.s.top() == json::parsing::ARRAY_VALUE
         ) {
-            p.value = json::value(s);
+            p.value = json::type(s);
             p.s.push(json::parsing::VALUE_IS_DONE);
         }
     }
@@ -436,7 +459,7 @@ class json {
             std::string v;
             v += p.c;
             while (p.i.get(p.c)) {
-                if (p.c == ' ' || p.c == ',' || p.c == ']' || p.c == '}') {
+                if (isspace(p.c) || p.c == ',' || p.c == ']' || p.c == '}') {
                     if      (v == "null" )                    p.value = json::null();
                     else if (v == "true" )                    p.value = json::boolean(true);
                     else if (v == "false")                    p.value = json::boolean(false);
