@@ -197,33 +197,38 @@ class json {
             return this->v->j_str();
         }
 
-        operator bool        () const {return *static_cast<json::boolean*>(this->v);}
-        operator bool        ()       {return *static_cast<json::boolean*>(this->v);}
-        operator int         () const {return *static_cast<json::integer*>(this->v);}
-        operator int         ()       {return *static_cast<json::integer*>(this->v);}
-        operator long        () const {return *static_cast<json::integer*>(this->v);}
-        operator long        ()       {return *static_cast<json::integer*>(this->v);}
-        operator float       () const {return *static_cast<json::number* >(this->v);}
-        operator float       ()       {return *static_cast<json::number* >(this->v);}
-        operator double      () const {return *static_cast<json::number* >(this->v);}
-        operator double      ()       {return *static_cast<json::number* >(this->v);}
-        operator std::string () const {return *static_cast<json::string* >(this->v);}
-        operator std::string&()       {return *static_cast<json::string* >(this->v);}
+        operator json::null () const {return *static_cast<json::null*>(this->v);}
+        operator json::null&()       {return *static_cast<json::null*>(this->v);}
 
-        operator json::null    () const {return *static_cast<json::null*   >(this->v);}
-        operator json::null&   ()       {return *static_cast<json::null*   >(this->v);}
+        operator bool          () const {return *static_cast<json::boolean*>(this->v);}
+        operator bool          ()       {return *static_cast<json::boolean*>(this->v);}
         operator json::boolean () const {return *static_cast<json::boolean*>(this->v);}
         operator json::boolean&()       {return *static_cast<json::boolean*>(this->v);}
+
+        operator int           () const {return *static_cast<json::integer*>(this->v);}
+        operator int           ()       {return *static_cast<json::integer*>(this->v);}
+        operator long          () const {return *static_cast<json::integer*>(this->v);}
+        operator long          ()       {return *static_cast<json::integer*>(this->v);}
         operator json::integer () const {return *static_cast<json::integer*>(this->v);}
         operator json::integer&()       {return *static_cast<json::integer*>(this->v);}
-        operator json::number  () const {return *static_cast<json::number* >(this->v);}
-        operator json::number& ()       {return *static_cast<json::number* >(this->v);}
-        operator json::string  () const {return *static_cast<json::string* >(this->v);}
-        operator json::string& ()       {return *static_cast<json::string* >(this->v);}
-        operator json::array   () const {return *static_cast<json::array*  >(this->v);}
-        operator json::array&  ()       {return *static_cast<json::array*  >(this->v);}
-        operator json::object  () const {return *static_cast<json::object* >(this->v);}
-        operator json::object& ()       {return *static_cast<json::object* >(this->v);}
+
+        operator float        () const {return *static_cast<json::number*>(this->v);}
+        operator float        ()       {return *static_cast<json::number*>(this->v);}
+        operator double       () const {return *static_cast<json::number*>(this->v);}
+        operator double       ()       {return *static_cast<json::number*>(this->v);}
+        operator json::number () const {return *static_cast<json::number*>(this->v);}
+        operator json::number&()       {return *static_cast<json::number*>(this->v);}
+
+        operator std::string  () const {return *static_cast<json::string*>(this->v);}
+        operator std::string& ()       {return *static_cast<json::string*>(this->v);}
+        operator json::string () const {return *static_cast<json::string*>(this->v);}
+        operator json::string&()       {return *static_cast<json::string*>(this->v);}
+
+        operator json::array () const {return *static_cast<json::array*>(this->v);}
+        operator json::array&()       {return *static_cast<json::array*>(this->v);}
+
+        operator json::object () const {return *static_cast<json::object*>(this->v);}
+        operator json::object&()       {return *static_cast<json::object*>(this->v);}
     };
 
     public: struct array : json::base {
@@ -297,7 +302,7 @@ class json {
         parsing(std::filebuf* fb) : i(fb) {}
         parsing(std::stringbuf* sb) : i(sb) {}
 
-        void finish_reading() {
+        void pop_states() {
             this->s.pop();  // parsing::OBJECT/ARRAY_VALUE_IS_DONE -> parsing::OBJECT/ARRAY_VALUE
             if (this->s.top() == json::parsing::OBJECT_VALUE) {
                 this->s.pop();
@@ -370,13 +375,13 @@ class json {
         if (p.no-- == 0) p.throw__invalid_argument();
 
         if (p.s.top() == json::parsing::VALUE_IS_DONE) {
-            p.finish_reading();
+            p.pop_states();
             static_cast<json::object*>(p.j.top())->insert({p.key, p.value});
         } else if (
             p.s.top() == json::parsing::OBJECT_VALUE_IS_DONE ||
             p.s.top() == json::parsing::ARRAY_VALUE_IS_DONE
         ) {
-            p.finish_reading();
+            p.pop_states();
         } else {
             p.throw__invalid_argument();
         }
@@ -401,13 +406,13 @@ class json {
         if (p.na-- == 0) p.throw__invalid_argument();
 
         if (p.s.top() == json::parsing::VALUE_IS_DONE) {
-            p.finish_reading();
+            p.pop_states();
             static_cast<json::array*>(p.j.top())->push_back(p.value);
         } else if (
             p.s.top() == json::parsing::OBJECT_VALUE_IS_DONE ||
             p.s.top() == json::parsing::ARRAY_VALUE_IS_DONE
         ) {
-            p.finish_reading();
+            p.pop_states();
         } else {
             p.throw__invalid_argument();
         }
@@ -424,7 +429,7 @@ class json {
     }
     private: static void parse__comma(json::parsing& p) {
         if (p.s.top() == json::parsing::VALUE_IS_DONE) {
-            p.finish_reading();
+            p.pop_states();
             if (p.s.top() == json::parsing::OBJECT_KEY) {
                 static_cast<json::object*>(p.j.top())->insert({p.key, p.value});
             } else {  // json::parsing::ARRAY_VALUE
@@ -434,7 +439,7 @@ class json {
             p.s.top() == json::parsing::OBJECT_VALUE_IS_DONE ||
             p.s.top() == json::parsing::ARRAY_VALUE_IS_DONE
         ) {
-            p.finish_reading();
+            p.pop_states();
         } else {
             p.throw__invalid_argument();
         }
@@ -480,12 +485,11 @@ class json {
             v += p.c;
             while (p.i.get(p.c)) {
                 if (isspace(p.c) || p.c == ',' || p.c == ']' || p.c == '}') {
-                    if      (v == "null" )                    p.value = json::null();
-                    else if (v == "true" )                    p.value = json::boolean(true);
-                    else if (v == "false")                    p.value = json::boolean(false);
-                    else
-                        if (v.find('.') != std::string::npos) p.value = json::number(std::stod(v));
-                        else                                  p.value = json::integer(std::stol(v));
+                    if      (v == "null"                     ) p.value = json::null();
+                    else if (v == "true"                     ) p.value = json::boolean(true);
+                    else if (v == "false"                    ) p.value = json::boolean(false);
+                    else if (v.find('.') != std::string::npos) p.value = json::number(std::stod(v));
+                    else                                       p.value = json::integer(std::stol(v));
                     p.s.push(json::parsing::VALUE_IS_DONE);
                     p.i.seekg(-1, std::ios::cur);
                     break;
