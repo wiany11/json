@@ -1,12 +1,13 @@
 #include <iostream>
-#include <stdexcept>
 #include <sstream>
 #include <stack>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 class json {
+
     public: struct null;
     public: struct boolean;
     public: struct integer;
@@ -15,7 +16,7 @@ class json {
     public: struct array;
     public: struct object;
 
-    private: static void quote_and_escape(const char* s, std::size_t n, std::string& jstr) {
+    private: static void escape_and_quote(const char* s, std::size_t n, std::string& jstr) {
         jstr += '\"';
         for (std::size_t i = 0; i < n; i++) {
             switch (*(s + i)) {
@@ -33,18 +34,14 @@ class json {
     }
 
     private: struct base {
-        private: static void j_str(json::base* that, std::string& jstr) {
-            if (dynamic_cast<const json::null*>(that)) {
-                jstr += "null";
-            } else if (const json::boolean* j = dynamic_cast<const json::boolean*>(that)) {
-                jstr += static_cast<bool>(*j) ? "true" : "false";
-            } else if (const json::integer* j = dynamic_cast<const json::integer*>(that)) {
-                jstr += std::to_string(*j);
-            } else if (const json::number* j = dynamic_cast<const json::number*>(that)) {
-                jstr += std::to_string(*j);
-            } else if (const json::string* j = dynamic_cast<const json::string*>(that)) {
-                json::quote_and_escape(j->c_str(), j->size(), jstr);
-            } else if (const json::array* j = dynamic_cast<const json::array*>(that)) {
+
+        private: static void j_str(const json::base* that, std::string& jstr) {
+            if      (                         dynamic_cast<const json::null*   >(that)) jstr += "null";
+            else if (const json::boolean* j = dynamic_cast<const json::boolean*>(that)) jstr += static_cast<bool>(*j) ? "true" : "false";
+            else if (const json::integer* j = dynamic_cast<const json::integer*>(that)) jstr += std::to_string(*j);
+            else if (const json::number*  j = dynamic_cast<const json::number* >(that)) jstr += std::to_string(*j);
+            else if (const json::string*  j = dynamic_cast<const json::string* >(that)) json::escape_and_quote(j->c_str(), j->size(), jstr);
+            else if (const json::array*   j = dynamic_cast<const json::array*  >(that)) {
                 jstr += '[';
                 for (const json::type& e : *j) {
                     json::base::j_str(e.v, jstr);
@@ -52,10 +49,11 @@ class json {
                 }
                 jstr.pop_back();
                 jstr += ']';
-            } else if (const json::object* j = dynamic_cast<const json::object*>(that)) {
+            }
+            else if (const json::object*  j = dynamic_cast<const json::object* >(that)) {
                 jstr += '{';
                 for (const std::pair<std::string, json::type>& e : *j) {
-                    json::quote_and_escape(e.first.c_str(), e.first.size(), jstr);
+                    json::escape_and_quote(e.first.c_str(), e.first.size(), jstr);
                     jstr += ':';
                     json::base::j_str(e.second.v, jstr);
                     jstr += ',';
@@ -72,11 +70,12 @@ class json {
             else                              return false;
         }
 
-        public: std::string j_str() {
+        public: std::string j_str() const {
             std::string jstr;
             json::base::j_str(this, jstr);
             return jstr;
         }
+
     };
 
     public: struct null : json::base {};
@@ -84,18 +83,21 @@ class json {
     public: struct boolean : json::base {
         private: bool v;
         public:  boolean(bool v) : v(v) {}
+        public:  operator bool()       {return this->v;}
         public:  operator bool() const {return this->v;}
     };
 
     public: struct integer : json::base {
         private: long v;
         public:  integer(long v) : v(v) {}
+        public:  operator long()       {return this->v;}
         public:  operator long() const {return this->v;}
     };
 
     public: struct number : json::base {
         private: double v;
         public:  number(double v) : v(v) {}
+        public:  operator double()       {return this->v;}
         public:  operator double() const {return this->v;}
     };
 
@@ -104,8 +106,16 @@ class json {
         public:  string(const std::string& v) : v(v) {}
         public:  std::size_t size() const {return this->v.size();}
         public:  const char* c_str() const {return this->v.c_str();}
-        public:  operator std::string () const {return this->v;}
-        //public:  operator std::string&() const {return this->v;}
+        public:  operator std::string() const {return this->v;}
+        public:  operator std::string&() {return this->v;}
+        public:  json::string& operator=(const json::string& that) {
+            if (this != &that) this->v = that.v;
+            return *this;
+        }
+        public:  json::string& operator=(const std::string& v) {
+            this->v = v;
+            return *this;
+        }
     };
 
     public: struct type {
@@ -188,22 +198,32 @@ class json {
         }
 
         operator bool        () const {return *static_cast<json::boolean*>(this->v);}
+        operator bool        ()       {return *static_cast<json::boolean*>(this->v);}
         operator int         () const {return *static_cast<json::integer*>(this->v);}
+        operator int         ()       {return *static_cast<json::integer*>(this->v);}
         operator long        () const {return *static_cast<json::integer*>(this->v);}
+        operator long        ()       {return *static_cast<json::integer*>(this->v);}
         operator float       () const {return *static_cast<json::number* >(this->v);}
+        operator float       ()       {return *static_cast<json::number* >(this->v);}
         operator double      () const {return *static_cast<json::number* >(this->v);}
+        operator double      ()       {return *static_cast<json::number* >(this->v);}
         operator std::string () const {return *static_cast<json::string* >(this->v);}
+        operator std::string&()       {return *static_cast<json::string* >(this->v);}
 
-        operator json::null   () const {return *static_cast<json::null*   >(this->v);}
-        operator json::boolean() const {return *static_cast<json::boolean*>(this->v);}
-        operator json::integer() const {return *static_cast<json::integer*>(this->v);}
-        operator json::number () const {return *static_cast<json::number* >(this->v);}
-        operator json::string () const {return *static_cast<json::string* >(this->v);}
-        operator json::string&() const {return *static_cast<json::string* >(this->v);}
-        operator json::array  () const {return *static_cast<json::array*  >(this->v);}
-        operator json::array& () const {return *static_cast<json::array*  >(this->v);}
-        operator json::object () const {return *static_cast<json::object* >(this->v);}
-        operator json::object&() const {return *static_cast<json::object* >(this->v);}
+        operator json::null    () const {return *static_cast<json::null*   >(this->v);}
+        operator json::null&   ()       {return *static_cast<json::null*   >(this->v);}
+        operator json::boolean () const {return *static_cast<json::boolean*>(this->v);}
+        operator json::boolean&()       {return *static_cast<json::boolean*>(this->v);}
+        operator json::integer () const {return *static_cast<json::integer*>(this->v);}
+        operator json::integer&()       {return *static_cast<json::integer*>(this->v);}
+        operator json::number  () const {return *static_cast<json::number* >(this->v);}
+        operator json::number& ()       {return *static_cast<json::number* >(this->v);}
+        operator json::string  () const {return *static_cast<json::string* >(this->v);}
+        operator json::string& ()       {return *static_cast<json::string* >(this->v);}
+        operator json::array   () const {return *static_cast<json::array*  >(this->v);}
+        operator json::array&  ()       {return *static_cast<json::array*  >(this->v);}
+        operator json::object  () const {return *static_cast<json::object* >(this->v);}
+        operator json::object& ()       {return *static_cast<json::object* >(this->v);}
     };
 
     public: struct array : json::base {
